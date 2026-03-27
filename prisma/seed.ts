@@ -538,6 +538,262 @@ async function main() {
     },
   });
 
+  // ── Scheduled Lessons ───────────────────────────────────────────────────────
+  // Helper: build a Date for a given day offset from 2026-03-27 (today) at a given hour
+  const d = (dayOffset: number, hour: number, minute = 0) => {
+    const dt = new Date("2026-03-27T00:00:00");
+    dt.setDate(dt.getDate() + dayOffset);
+    dt.setHours(hour, minute, 0, 0);
+    return dt;
+  };
+
+  // ── Michael Wang (Markham) — busy schedule this week & next ─────────────────
+  // Past: Mon Mar 23 — Chloe Zhang, Math, already confirmed
+  const lessonMkm1 = await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-mkm-1" },
+    update: {},
+    create: {
+      id: "lesson-mkm-1",
+      teacherId: teacherMkm.id, studentId: s2.id,
+      packageId: "pkg-mkm-1", classroomId: room101.id,
+      startTime: d(-4, 16), endTime: d(-4, 18), lessonType: "ONE_ON_ONE",
+    },
+  });
+  // Log submitted + confirmed for lesson-mkm-1
+  const log1 = await prisma.lessonLog.upsert({
+    where: { lessonId: "lesson-mkm-1" },
+    update: {},
+    create: {
+      lessonId: "lesson-mkm-1",
+      teacherId: teacherMkm.id, subjectId: subMath!.id,
+      notes: "Covered quadratic functions. Student did well on practice problems. HW: p.45 Q1-10.",
+      submittedAt: d(-4, 18, 30),
+      confirmedById: "user-acad-mkm", confirmedAt: d(-3, 10),
+    },
+  });
+  await prisma.courseDeduction.upsert({
+    where: { logId: log1.id },
+    update: {},
+    create: {
+      packageId: "pkg-mkm-1", logId: log1.id, hoursDeducted: 2,
+    },
+  });
+
+  // Past: Wed Mar 25 — Ethan Park, Physics, log submitted but not confirmed yet
+  const lessonMkm2 = await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-mkm-2" },
+    update: {},
+    create: {
+      id: "lesson-mkm-2",
+      teacherId: teacherMkm.id, studentId: s3.id,
+      packageId: "pkg-mkm-2", classroomId: room101.id,
+      startTime: d(-2, 16), endTime: d(-2, 18), lessonType: "ONE_ON_ONE",
+    },
+  });
+  await prisma.lessonLog.upsert({
+    where: { lessonId: "lesson-mkm-2" },
+    update: {},
+    create: {
+      lessonId: "lesson-mkm-2",
+      teacherId: teacherMkm.id, subjectId: subPhysics!.id,
+      notes: "Kinematics review — projectile motion. Student needs more practice on vector components.",
+      submittedAt: d(-2, 18, 15),
+    },
+  });
+
+  // Today: Fri Mar 27 — Chloe Zhang, Math (no log yet)
+  await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-mkm-3" },
+    update: {},
+    create: {
+      id: "lesson-mkm-3",
+      teacherId: teacherMkm.id, studentId: s2.id,
+      packageId: "pkg-mkm-1", classroomId: room101.id,
+      startTime: d(0, 15), endTime: d(0, 17), lessonType: "ONE_ON_ONE",
+    },
+  });
+
+  // Upcoming: Mon Mar 30 — Chloe Zhang
+  await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-mkm-4" },
+    update: {},
+    create: {
+      id: "lesson-mkm-4",
+      teacherId: teacherMkm.id, studentId: s2.id,
+      packageId: "pkg-mkm-1", classroomId: room101.id,
+      startTime: d(3, 16), endTime: d(3, 18), lessonType: "ONE_ON_ONE",
+    },
+  });
+
+  // Upcoming: Wed Apr 1 — Ethan Park
+  await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-mkm-5" },
+    update: {},
+    create: {
+      id: "lesson-mkm-5",
+      teacherId: teacherMkm.id, studentId: s3.id,
+      packageId: "pkg-mkm-2", classroomId: room101.id,
+      startTime: d(5, 16), endTime: d(5, 18), lessonType: "ONE_ON_ONE",
+    },
+  });
+
+  // Upcoming: Sat Apr 4 — Ethan Park (morning slot)
+  await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-mkm-6" },
+    update: {},
+    create: {
+      id: "lesson-mkm-6",
+      teacherId: teacherMkm.id, studentId: s3.id,
+      packageId: "pkg-mkm-2", classroomId: room101.id,
+      startTime: d(8, 10), endTime: d(8, 12), lessonType: "ONE_ON_ONE",
+    },
+  });
+
+  // ── Kevin Li (Richmond Hill) ─────────────────────────────────────────────────
+  // Past: Tue Mar 24 — Noah Kim, Chemistry, confirmed
+  const lessonRH1 = await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-rh-1" },
+    update: {},
+    create: {
+      id: "lesson-rh-1",
+      teacherId: teacherRH.id, studentId: s5.id,
+      packageId: "pkg-rh-1", classroomId: roomRH1.id,
+      startTime: d(-3, 17), endTime: d(-3, 19), lessonType: "ONE_ON_ONE",
+    },
+  });
+  const log2 = await prisma.lessonLog.upsert({
+    where: { lessonId: "lesson-rh-1" },
+    update: {},
+    create: {
+      lessonId: "lesson-rh-1",
+      teacherId: teacherRH.id, subjectId: subChem!.id,
+      notes: "Mole calculations and stoichiometry. Student is progressing well.",
+      submittedAt: d(-3, 19, 20),
+      confirmedById: "user-principal-rh", confirmedAt: d(-2, 9),
+    },
+  });
+  await prisma.courseDeduction.upsert({
+    where: { logId: log2.id },
+    update: {},
+    create: {
+      packageId: "pkg-rh-1", logId: log2.id, hoursDeducted: 2,
+    },
+  });
+
+  // Upcoming: Tue Apr 1 — Noah Kim
+  await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-rh-2" },
+    update: {},
+    create: {
+      id: "lesson-rh-2",
+      teacherId: teacherRH.id, studentId: s5.id,
+      packageId: "pkg-rh-1", classroomId: roomRH1.id,
+      startTime: d(5, 17), endTime: d(5, 19), lessonType: "ONE_ON_ONE",
+    },
+  });
+
+  // Upcoming: Thu Apr 3 — Noah Kim
+  await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-rh-3" },
+    update: {},
+    create: {
+      id: "lesson-rh-3",
+      teacherId: teacherRH.id, studentId: s5.id,
+      packageId: "pkg-rh-1", classroomId: roomRH1.id,
+      startTime: d(7, 17), endTime: d(7, 19), lessonType: "ONE_ON_ONE",
+    },
+  });
+
+  // ── Robert Chen (Scarborough) ────────────────────────────────────────────────
+  // Past: Sat Mar 22 — Liam Wu, Physics, confirmed
+  const lessonScar1 = await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-scar-1" },
+    update: {},
+    create: {
+      id: "lesson-scar-1",
+      teacherId: teacherScar.id, studentId: s7.id,
+      packageId: "pkg-scar-1", classroomId: "room-scar-101",
+      startTime: d(-5, 14), endTime: d(-5, 16), lessonType: "ONE_ON_ONE",
+    },
+  });
+  const log3 = await prisma.lessonLog.upsert({
+    where: { lessonId: "lesson-scar-1" },
+    update: {},
+    create: {
+      lessonId: "lesson-scar-1",
+      teacherId: teacherScar.id, subjectId: subPhysics!.id,
+      notes: "Energy conservation problems. Reviewed for upcoming exam.",
+      submittedAt: d(-5, 16, 30),
+      confirmedById: "user-finance", confirmedAt: d(-4, 11),
+    },
+  });
+  await prisma.courseDeduction.upsert({
+    where: { logId: log3.id },
+    update: {},
+    create: {
+      packageId: "pkg-scar-1", logId: log3.id, hoursDeducted: 2,
+    },
+  });
+
+  // This Sat Mar 29 — Liam Wu (no log yet)
+  await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-scar-2" },
+    update: {},
+    create: {
+      id: "lesson-scar-2",
+      teacherId: teacherScar.id, studentId: s7.id,
+      packageId: "pkg-scar-1", classroomId: "room-scar-101",
+      startTime: d(2, 14), endTime: d(2, 16), lessonType: "ONE_ON_ONE",
+    },
+  });
+
+  // Upcoming: Sat Apr 5 — Liam Wu
+  await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-scar-3" },
+    update: {},
+    create: {
+      id: "lesson-scar-3",
+      teacherId: teacherScar.id, studentId: s7.id,
+      packageId: "pkg-scar-1", classroomId: "room-scar-101",
+      startTime: d(9, 14), endTime: d(9, 16), lessonType: "ONE_ON_ONE",
+    },
+  });
+
+  // ── James Nguyen (Mississauga) ───────────────────────────────────────────────
+  // Past: Sun Mar 23 — Lucas Nguyen, Math, log submitted not confirmed
+  const lessonMiss1 = await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-miss-1" },
+    update: {},
+    create: {
+      id: "lesson-miss-1",
+      teacherId: teacherMiss.id, studentId: s9.id,
+      packageId: "pkg-miss-1", classroomId: "room-miss-101",
+      startTime: d(-4, 14), endTime: d(-4, 16), lessonType: "ONE_ON_ONE",
+    },
+  });
+  await prisma.lessonLog.upsert({
+    where: { lessonId: "lesson-miss-1" },
+    update: {},
+    create: {
+      lessonId: "lesson-miss-1",
+      teacherId: teacherMiss.id, subjectId: subMath!.id,
+      notes: "Trigonometric identities. Student is ahead of schedule.",
+      submittedAt: d(-4, 16, 45),
+    },
+  });
+
+  // Upcoming: Sun Mar 30 — Lucas Nguyen
+  await prisma.scheduledLesson.upsert({
+    where: { id: "lesson-miss-2" },
+    update: {},
+    create: {
+      id: "lesson-miss-2",
+      teacherId: teacherMiss.id, studentId: s9.id,
+      packageId: "pkg-miss-1", classroomId: "room-miss-101",
+      startTime: d(3, 14), endTime: d(3, 16), lessonType: "ONE_ON_ONE",
+    },
+  });
+
   // ── Summary ─────────────────────────────────────────────────────────────────
   console.log("✅ Seed complete");
   console.log("\n📋 Campuses: Markham | Richmond Hill | Scarborough | Mississauga");
