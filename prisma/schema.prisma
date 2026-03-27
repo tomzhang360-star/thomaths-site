@@ -3,41 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-}
-
-enum Role {
-  SUPER_ADMIN
-  HR
-  SALES
-  TEACHER
-  ACADEMIC_ADMIN
-  PRINCIPAL
-  FINANCE
-}
-
-enum LeadSource {
-  OUTREACH
-  REFERRAL
-  AD
-  OTHER
-}
-
-enum ContactMethod {
-  PHONE
-  WECHAT
-}
-
-enum PackageStatus {
-  PENDING_APPROVAL
-  ACTIVE
-  FINANCE_LOCK
-}
-
-enum LessonType {
-  ONE_ON_ONE
-  GROUP
 }
 
 model User {
@@ -64,7 +31,7 @@ model User {
 
 model UserRole {
   userId String
-  role   Role
+  role   String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, role])
@@ -126,40 +93,40 @@ model Student {
 }
 
 model Lead {
-  studentId String     @id
-  source    LeadSource
-  student   Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String  @id
+  source    String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 model FollowUp {
-  id            String        @id @default(cuid())
+  id            String    @id @default(cuid())
   studentId     String
   salesId       String
-  contactMethod ContactMethod
-  content       String        @db.Text
+  contactMethod String
+  content       String
   followedAt    DateTime
   nextFollowUp  DateTime?
-  createdAt     DateTime      @default(now())
+  createdAt     DateTime  @default(now())
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   sales   User    @relation(fields: [salesId], references: [id])
 }
 
 model CoursePackage {
-  id             String        @id @default(cuid())
+  id             String    @id @default(cuid())
   studentId      String
   gradeId        String
   subjectId      String
-  totalHours     Decimal       @db.Decimal(6, 2)
-  pricePerHour   Decimal       @db.Decimal(10, 2)
-  totalAmount    Decimal       @db.Decimal(10, 2)
-  remainingHours Decimal       @db.Decimal(6, 2)
-  status         PackageStatus @default(PENDING_APPROVAL)
+  totalHours     Float
+  pricePerHour   Float
+  totalAmount    Float
+  remainingHours Float
+  status         String    @default("PENDING_APPROVAL")
   createdById    String
   confirmedById  String?
   confirmedAt    DateTime?
-  notes          String?       @db.Text
-  createdAt      DateTime      @default(now())
+  notes          String?
+  createdAt      DateTime  @default(now())
 
   student   Student  @relation(fields: [studentId], references: [id])
   grade     Grade    @relation(fields: [gradeId], references: [id])
@@ -182,15 +149,15 @@ model Classroom {
 }
 
 model ScheduledLesson {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
   teacherId   String
   studentId   String
   packageId   String
   classroomId String
   startTime   DateTime
   endTime     DateTime
-  lessonType  LessonType @default(ONE_ON_ONE)
-  createdAt   DateTime   @default(now())
+  lessonType  String   @default("ONE_ON_ONE")
+  createdAt   DateTime @default(now())
 
   teacher   User          @relation(fields: [teacherId], references: [id])
   student   Student       @relation(fields: [studentId], references: [id])
@@ -205,7 +172,7 @@ model LessonLog {
   lessonId      String    @unique
   teacherId     String
   subjectId     String
-  notes         String    @db.Text
+  notes         String
   submittedAt   DateTime  @default(now())
   confirmedById String?
   confirmedAt   DateTime?
@@ -221,7 +188,7 @@ model CourseDeduction {
   id            String    @id @default(cuid())
   packageId     String
   logId         String    @unique
-  hoursDeducted Decimal   @db.Decimal(6, 2)
+  hoursDeducted Float
   createdAt     DateTime  @default(now())
   reversedAt    DateTime?
   reversedById  String?

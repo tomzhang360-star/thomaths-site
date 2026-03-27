@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/enums";
 import { SessionProvider } from "next-auth/react";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

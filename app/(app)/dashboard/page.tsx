@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/enums";
 import Link from "next/link";
 
 export default async function DashboardPage() {
