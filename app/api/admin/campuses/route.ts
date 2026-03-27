@@ -1,0 +1,32 @@
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { canManageUsers } from "@/lib/permissions";
+import type { Role } from "@prisma/client";
+import { z } from "zod";
+
+const schema = z.object({ name: z.string().min(1, "校区名称不能为空") });
+
+export async function GET() {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const campuses = await prisma.campus.findMany({ orderBy: { createdAt: "asc" } });
+  return NextResponse.json(campuses);
+}
+
+export async function POST(req: Request) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = session.user as { roles: Role[]; campusIds: string[] };
+  if (!canManageUsers({ ...user, id: (session.user as { id: string }).id, name: session.user.name ?? "" })) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+
+  const campus = await prisma.campus.create({ data: { name: parsed.data.name } });
+  return NextResponse.json(campus, { status: 201 });
+}
