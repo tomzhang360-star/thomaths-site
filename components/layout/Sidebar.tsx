@@ -35,7 +35,7 @@ export default function Sidebar({ userRoles }: { userRoles: Role[] }) {
   return (
     <div className="flex flex-col h-full w-60 bg-slate-800 text-slate-200">
       <div className="px-6 py-5 border-b border-slate-700">
-        <h1 className="text-white font-bold text-lg">Thomaths EMS</h1>
+        <h1 className="text-white font-bold text-lg">VEA EMS</h1>
         <p className="text-slate-400 text-xs mt-0.5">教务管理系统</p>
       </div>
 

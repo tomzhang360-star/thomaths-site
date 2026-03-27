@@ -34,7 +34,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-100">
       <div className="bg-white rounded-xl shadow-md w-full max-w-sm p-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-slate-800">Thomaths EMS</h1>
+          <h1 className="text-2xl font-bold text-slate-800">VEA EMS</h1>
           <p className="text-slate-500 text-sm mt-1">教务管理系统</p>
         </div>
 
