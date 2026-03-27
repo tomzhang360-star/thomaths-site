@@ -204,8 +204,8 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
                     <label className="block text-xs font-medium text-slate-600 mb-1">联系方式</label>
                     <select value={followUpForm.contactMethod} onChange={e => setFollowUpForm({...followUpForm, contactMethod: e.target.value})}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
-                      <option value="PHONE">电话</option>
-                      <option value="WECHAT">微信</option>
+                      <option value="PHONE">Phone Call</option>
+                      <option value="WECHAT">WeChat</option>
                     </select>
                   </div>
                   <div>
@@ -241,7 +241,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
-                      {f.contactMethod === "PHONE" ? "📞 电话" : "💬 微信"}
+                      {f.contactMethod === "PHONE" ? "📞 Phone" : "💬 WeChat"}
                     </span>
                     <span className="text-xs text-slate-400">{new Date(f.followedAt).toLocaleString("zh-CN")}</span>
                     <span className="text-xs text-slate-400">by {f.sales.name}</span>

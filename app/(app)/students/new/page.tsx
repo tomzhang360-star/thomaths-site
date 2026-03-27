@@ -89,7 +89,7 @@ export default function NewStudentPage() {
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">公立学校</label>
             <input value={form.publicSchool} onChange={e => setForm({...form, publicSchool: e.target.value})}
-              placeholder="就读的公立学校名称"
+              placeholder="e.g. Bayview Secondary School"
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
