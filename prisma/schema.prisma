@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String   @unique
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  roles    UserRole[]
+  campuses UserCampus[]
+
+  studentsAsSales    Student[]         @relation("StudentSales")
+  packagesCreated    CoursePackage[]   @relation("PackageCreator")
+  packagesConfirmed  CoursePackage[]   @relation("PackageConfirmer")
+  followUps          FollowUp[]
+  lessonsAsTeacher   ScheduledLesson[]
+  lessonLogs         LessonLog[]       @relation("LogTeacher")
+  logConfirmations   LessonLog[]       @relation("LogConfirmer")
+  deductionReversals CourseDeduction[]
+  notifications      Notification[]
+}
+
+model UserRole {
+  userId String
+  role   String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, role])
+}
+
+model UserCampus {
+  userId   String
+  campusId String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@id([userId, campusId])
+}
+
+model Campus {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users      UserCampus[]
+  students   Student[]
+  classrooms Classroom[]
+}
+
+model Grade {
+  id   String @id @default(cuid())
+  name String @unique
+
+  students Student[]
+  packages CoursePackage[]
+}
+
+model Subject {
+  id   String @id @default(cuid())
+  name String @unique
+
+  packages   CoursePackage[]
+  lessonLogs LessonLog[]
+}
+
+model Student {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String   @unique
+  gradeId      String
+  publicSchool String?
+  salesId      String?
+  campusId     String
+  createdAt    DateTime @default(now())
+
+  grade    Grade   @relation(fields: [gradeId], references: [id])
+  sales    User?   @relation("StudentSales", fields: [salesId], references: [id])
+  campus   Campus  @relation(fields: [campusId], references: [id])
+
+  leadInfo  Lead?
+  followUps FollowUp[]
+  packages  CoursePackage[]
+  lessons   ScheduledLesson[]
+}
+
+model Lead {
+  studentId String  @id
+  source    String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model FollowUp {
+  id            String    @id @default(cuid())
+  studentId     String
+  salesId       String
+  contactMethod String
+  content       String
+  followedAt    DateTime
+  nextFollowUp  DateTime?
+  createdAt     DateTime  @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  sales   User    @relation(fields: [salesId], references: [id])
+}
+
+model CoursePackage {
+  id             String    @id @default(cuid())
+  studentId      String
+  gradeId        String
+  subjectId      String
+  totalHours     Float
+  pricePerHour   Float
+  totalAmount    Float
+  remainingHours Float
+  status         String    @default("PENDING_APPROVAL")
+  createdById    String
+  confirmedById  String?
+  confirmedAt    DateTime?
+  notes          String?
+  createdAt      DateTime  @default(now())
+
+  student   Student  @relation(fields: [studentId], references: [id])
+  grade     Grade    @relation(fields: [gradeId], references: [id])
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  creator   User     @relation("PackageCreator", fields: [createdById], references: [id])
+  confirmer User?    @relation("PackageConfirmer", fields: [confirmedById], references: [id])
+
+  lessons    ScheduledLesson[]
+  deductions CourseDeduction[]
+}
+
+model Classroom {
+  id       String @id @default(cuid())
+  name     String
+  campusId String
+  capacity Int?
+
+  campus  Campus            @relation(fields: [campusId], references: [id])
+  lessons ScheduledLesson[]
+}
+
+model ScheduledLesson {
+  id          String   @id @default(cuid())
+  teacherId   String
+  studentId   String
+  packageId   String
+  classroomId String
+  startTime   DateTime
+  endTime     DateTime
+  lessonType  String   @default("ONE_ON_ONE")
+  createdAt   DateTime @default(now())
+
+  teacher   User          @relation(fields: [teacherId], references: [id])
+  student   Student       @relation(fields: [studentId], references: [id])
+  package   CoursePackage @relation(fields: [packageId], references: [id])
+  classroom Classroom     @relation(fields: [classroomId], references: [id])
+
+  log LessonLog?
+}
+
+model LessonLog {
+  id            String    @id @default(cuid())
+  lessonId      String    @unique
+  teacherId     String
+  subjectId     String
+  notes         String
+  submittedAt   DateTime  @default(now())
+  confirmedById String?
+  confirmedAt   DateTime?
+
+  lesson    ScheduledLesson  @relation(fields: [lessonId], references: [id])
+  teacher   User             @relation("LogTeacher", fields: [teacherId], references: [id])
+  subject   Subject          @relation(fields: [subjectId], references: [id])
+  confirmer User?            @relation("LogConfirmer", fields: [confirmedById], references: [id])
+  deduction CourseDeduction?
+}
+
+model CourseDeduction {
+  id            String    @id @default(cuid())
+  packageId     String
+  logId         String    @unique
+  hoursDeducted Float
+  createdAt     DateTime  @default(now())
+  reversedAt    DateTime?
+  reversedById  String?
+
+  package  CoursePackage @relation(fields: [packageId], references: [id])
+  log      LessonLog     @relation(fields: [logId], references: [id])
+  reverser User?         @relation(fields: [reversedById], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
