@@ -38,7 +38,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           teacher: { select: { name: true } },
           classroom: true,
           package: { include: { subject: true } },
-          log: { include: { deduction: true } },
+          log: { include: { deductions: true } },
         },
         orderBy: { startTime: "desc" },
         take: 20,

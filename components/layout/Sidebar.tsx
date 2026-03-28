@@ -17,9 +17,11 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/students", label: "学生管理", icon: "👨‍🎓" },
   { href: "/packages", label: "课包管理", icon: "📦", roles: ["SALES", "PRINCIPAL", "FINANCE", "SUPER_ADMIN"] as Role[] },
   { href: "/schedule", label: "排课", icon: "📅" },
+  { href: "/class-groups", label: "班课管理", icon: "👥", roles: ["SUPER_ADMIN", "PRINCIPAL", "ACADEMIC_ADMIN", "SALES"] as Role[] },
   { href: "/lessons", label: "核销管理", icon: "✅" },
   { href: "/reports/sales", label: "销售报表", icon: "📊", roles: ["SALES", "PRINCIPAL", "FINANCE", "SUPER_ADMIN"] as Role[] },
   { href: "/reports/teachers", label: "工时报表", icon: "⏱️", roles: ["TEACHER", "ACADEMIC_ADMIN", "PRINCIPAL", "FINANCE", "SUPER_ADMIN"] as Role[] },
+  { href: "/admin/classrooms", label: "教室管理", icon: "🚪", roles: ["SUPER_ADMIN", "PRINCIPAL"] as Role[] },
   { href: "/admin/campuses", label: "校区管理", icon: "🏫", roles: ["SUPER_ADMIN", "HR"] as Role[] },
   { href: "/admin/users", label: "用户管理", icon: "👥", roles: ["SUPER_ADMIN", "HR"] as Role[] },
 ];

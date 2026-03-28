@@ -15,32 +15,36 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const lesson = await prisma.scheduledLesson.findUnique({
     where: { id },
-    include: { log: { include: { deduction: true } } },
+    include: { log: { include: { deductions: true } } },
   });
 
   if (!lesson) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!lesson.log?.deduction) return NextResponse.json({ error: "该课程未核销" }, { status: 400 });
-  if (lesson.log.deduction.reversedAt) return NextResponse.json({ error: "该核销已撤销" }, { status: 400 });
-
-  const hoursDeducted = Number(lesson.log.deduction.hoursDeducted);
+  const activeDeductions = lesson.log?.deductions.filter(d => !d.reversedAt) ?? [];
+  if (activeDeductions.length === 0) return NextResponse.json({ error: "该课程未核销" }, { status: 400 });
 
   const result = await prisma.$transaction(async (tx) => {
-    const updatedDeduction = await tx.courseDeduction.update({
-      where: { id: lesson.log!.deduction!.id },
-      data: { reversedAt: new Date(), reversedById: sessionUser.id },
-    });
+    // Reverse all active deductions (handles both 1-on-1 and group)
+    const reversed = await Promise.all(activeDeductions.map(d =>
+      tx.courseDeduction.update({
+        where: { id: d.id },
+        data: { reversedAt: new Date(), reversedById: sessionUser.id },
+      })
+    ));
 
-    await tx.coursePackage.update({
-      where: { id: lesson.packageId },
-      data: { remainingHours: { increment: hoursDeducted } },
-    });
+    // Restore hours to each package
+    for (const d of activeDeductions) {
+      await tx.coursePackage.update({
+        where: { id: d.packageId },
+        data: { remainingHours: { increment: Number(d.hoursDeducted) } },
+      });
+    }
 
     await tx.lessonLog.update({
       where: { id: lesson.log!.id },
       data: { confirmedById: null, confirmedAt: null },
     });
 
-    return updatedDeduction;
+    return reversed;
   });
 
   return NextResponse.json(result);

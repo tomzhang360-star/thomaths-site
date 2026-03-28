@@ -11,7 +11,10 @@ export async function GET() {
   const isSuperAdmin = sessionUser.roles.includes("SUPER_ADMIN" as Role);
 
   const classrooms = await prisma.classroom.findMany({
-    where: isSuperAdmin ? {} : { campusId: { in: sessionUser.campusIds } },
+    where: {
+      isActive: true,
+      ...(isSuperAdmin ? {} : { campusId: { in: sessionUser.campusIds } }),
+    },
     include: { campus: { select: { name: true } } },
     orderBy: { name: "asc" },
   });

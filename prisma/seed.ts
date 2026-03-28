@@ -571,13 +571,8 @@ async function main() {
       confirmedById: "user-acad-mkm", confirmedAt: d(-3, 10),
     },
   });
-  await prisma.courseDeduction.upsert({
-    where: { logId: log1.id },
-    update: {},
-    create: {
-      packageId: "pkg-mkm-1", logId: log1.id, hoursDeducted: 2,
-    },
-  });
+  const existing1 = await prisma.courseDeduction.findFirst({ where: { logId: log1.id } });
+  if (!existing1) await prisma.courseDeduction.create({ data: { packageId: "pkg-mkm-1", logId: log1.id, hoursDeducted: 2 } });
 
   // Past: Wed Mar 25 — Ethan Park, Physics, log submitted but not confirmed yet
   const lessonMkm2 = await prisma.scheduledLesson.upsert({
@@ -672,13 +667,8 @@ async function main() {
       confirmedById: "user-principal-rh", confirmedAt: d(-2, 9),
     },
   });
-  await prisma.courseDeduction.upsert({
-    where: { logId: log2.id },
-    update: {},
-    create: {
-      packageId: "pkg-rh-1", logId: log2.id, hoursDeducted: 2,
-    },
-  });
+  const existing2 = await prisma.courseDeduction.findFirst({ where: { logId: log2.id } });
+  if (!existing2) await prisma.courseDeduction.create({ data: { packageId: "pkg-rh-1", logId: log2.id, hoursDeducted: 2 } });
 
   // Upcoming: Tue Apr 1 — Noah Kim
   await prisma.scheduledLesson.upsert({
@@ -727,13 +717,8 @@ async function main() {
       confirmedById: "user-finance", confirmedAt: d(-4, 11),
     },
   });
-  await prisma.courseDeduction.upsert({
-    where: { logId: log3.id },
-    update: {},
-    create: {
-      packageId: "pkg-scar-1", logId: log3.id, hoursDeducted: 2,
-    },
-  });
+  const existing3 = await prisma.courseDeduction.findFirst({ where: { logId: log3.id } });
+  if (!existing3) await prisma.courseDeduction.create({ data: { packageId: "pkg-scar-1", logId: log3.id, hoursDeducted: 2 } });
 
   // This Sat Mar 29 — Liam Wu (no log yet)
   await prisma.scheduledLesson.upsert({

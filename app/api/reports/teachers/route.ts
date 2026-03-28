@@ -51,7 +51,7 @@ export async function GET(req: Request) {
   for (const l of lessons) {
     const tid = l.teacherId;
     const durationH = (l.endTime.getTime() - l.startTime.getTime()) / 3600000;
-    const subjectName = l.log?.subject.name ?? l.package.subject.name;
+    const subjectName = l.log?.subject.name ?? l.package?.subject.name ?? "—";
 
     if (!byTeacher[tid]) byTeacher[tid] = {
       name: l.teacher.name, totalHours: 0, oneOnOneHours: 0, groupHours: 0, bySubject: {},

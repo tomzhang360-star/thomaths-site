@@ -45,7 +45,7 @@ export async function GET(req: Request) {
         include: {
           subject: true,
           confirmer: { select: { name: true } },
-          deduction: { include: { reverser: { select: { name: true } } } },
+          deductions: { include: { reverser: { select: { name: true } } } },
         },
       },
     },

@@ -27,6 +27,7 @@ model User {
   logConfirmations   LessonLog[]       @relation("LogConfirmer")
   deductionReversals CourseDeduction[]
   notifications      Notification[]
+  classGroupsTaught  ClassGroup[]      @relation("TeacherClassGroups")
 }
 
 model UserRole {
@@ -51,25 +52,28 @@ model Campus {
   name      String
   createdAt DateTime @default(now())
 
-  users      UserCampus[]
-  students   Student[]
-  classrooms Classroom[]
+  users       UserCampus[]
+  students    Student[]
+  classrooms  Classroom[]
+  classGroups ClassGroup[]
 }
 
 model Grade {
   id   String @id @default(cuid())
   name String @unique
 
-  students Student[]
-  packages CoursePackage[]
+  students    Student[]
+  packages    CoursePackage[]
+  classGroups ClassGroup[]
 }
 
 model Subject {
   id   String @id @default(cuid())
   name String @unique
 
-  packages   CoursePackage[]
-  lessonLogs LessonLog[]
+  packages    CoursePackage[]
+  lessonLogs  LessonLog[]
+  classGroups ClassGroup[]
 }
 
 model Student {
@@ -136,33 +140,67 @@ model CoursePackage {
 
   lessons    ScheduledLesson[]
   deductions CourseDeduction[]
+  enrollment ClassGroupEnrollment?
 }
 
 model Classroom {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   name     String
   campusId String
   capacity Int?
+  notes    String?
+  isActive Boolean @default(true)
 
   campus  Campus            @relation(fields: [campusId], references: [id])
   lessons ScheduledLesson[]
 }
 
-model ScheduledLesson {
+model ClassGroup {
   id          String   @id @default(cuid())
+  name        String
+  campusId    String
+  subjectId   String
+  gradeId     String
   teacherId   String
-  studentId   String
-  packageId   String
-  classroomId String
-  startTime   DateTime
-  endTime     DateTime
-  lessonType  String   @default("ONE_ON_ONE")
+  maxStudents Int      @default(6)
+  status      String   @default("RECRUITING")
+  notes       String?
   createdAt   DateTime @default(now())
 
-  teacher   User          @relation(fields: [teacherId], references: [id])
-  student   Student       @relation(fields: [studentId], references: [id])
-  package   CoursePackage @relation(fields: [packageId], references: [id])
-  classroom Classroom     @relation(fields: [classroomId], references: [id])
+  campus      Campus                 @relation(fields: [campusId], references: [id])
+  subject     Subject                @relation(fields: [subjectId], references: [id])
+  grade       Grade                  @relation(fields: [gradeId], references: [id])
+  teacher     User                   @relation("TeacherClassGroups", fields: [teacherId], references: [id])
+  enrollments ClassGroupEnrollment[]
+  lessons     ScheduledLesson[]
+}
+
+model ClassGroupEnrollment {
+  id           String @id @default(cuid())
+  classGroupId String
+  packageId    String @unique
+
+  classGroup ClassGroup    @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+  package    CoursePackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+}
+
+model ScheduledLesson {
+  id           String   @id @default(cuid())
+  teacherId    String
+  studentId    String?
+  packageId    String?
+  classGroupId String?
+  classroomId  String
+  startTime    DateTime
+  endTime      DateTime
+  lessonType   String   @default("ONE_ON_ONE")
+  createdAt    DateTime @default(now())
+
+  teacher    User          @relation(fields: [teacherId], references: [id])
+  student    Student?      @relation(fields: [studentId], references: [id])
+  package    CoursePackage? @relation(fields: [packageId], references: [id])
+  classGroup ClassGroup?   @relation(fields: [classGroupId], references: [id])
+  classroom  Classroom     @relation(fields: [classroomId], references: [id])
 
   log LessonLog?
 }
@@ -181,13 +219,13 @@ model LessonLog {
   teacher   User             @relation("LogTeacher", fields: [teacherId], references: [id])
   subject   Subject          @relation(fields: [subjectId], references: [id])
   confirmer User?            @relation("LogConfirmer", fields: [confirmedById], references: [id])
-  deduction CourseDeduction?
+  deductions CourseDeduction[]
 }
 
 model CourseDeduction {
   id            String    @id @default(cuid())
   packageId     String
-  logId         String    @unique
+  logId         String
   hoursDeducted Float
   createdAt     DateTime  @default(now())
   reversedAt    DateTime?
@@ -196,6 +234,8 @@ model CourseDeduction {
   package  CoursePackage @relation(fields: [packageId], references: [id])
   log      LessonLog     @relation(fields: [logId], references: [id])
   reverser User?         @relation(fields: [reversedById], references: [id])
+
+  @@index([logId])
 }
 
 model Notification {

@@ -37,9 +37,11 @@ type Lesson = {
   };
 };
 
-type Student   = { id: string; name: string };
-type Package   = { id: string; grade: { name: string }; subject: { name: string }; remainingHours: string };
-type Classroom = { id: string; name: string };
+type Student    = { id: string; name: string };
+type Package    = { id: string; grade: { name: string }; subject: { name: string }; remainingHours: string };
+type Classroom  = { id: string; name: string; capacity: number | null };
+type ClassGroup = { id: string; name: string; status: string; enrollments: unknown[]; maxStudents: number;
+  subject: { name: string }; grade: { name: string } };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getMonday(d: Date): Date {
@@ -251,28 +253,40 @@ function TeacherDayCard({
   );
 }
 
-// ── Create / Detail modal shared ──────────────────────────────────────────────
+// ── Create modal ──────────────────────────────────────────────────────────────
 function CreateModal({
   teachers, classrooms, teacherId, date, startTime, endTime,
   onStartChange, onEndChange, onClose, onSave, error,
 }: {
-  teachers: Teacher[];
-  classrooms: Classroom[];
-  teacherId: string;
-  date: string;
-  startTime: string;
-  endTime: string;
+  teachers:     Teacher[];
+  classrooms:   Classroom[];
+  teacherId:    string;
+  date:         string;
+  startTime:    string;
+  endTime:      string;
   onStartChange: (v: string) => void;
   onEndChange:   (v: string) => void;
   onClose: () => void;
-  onSave:  (data: { studentId: string; packageId: string; classroomId: string; lessonType: string }) => void;
-  error: string;
+  onSave:  (data: Record<string, string>) => void;
+  error:   string;
 }) {
+  const [lessonType,      setLessonType]      = useState("ONE_ON_ONE");
+  const [classroomId,     setClassroomId]     = useState("");
+  // 1-on-1
   const [studentSearch,   setStudentSearch]   = useState("");
   const [studentResults,  setStudentResults]  = useState<Student[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [studentPackages, setStudentPackages] = useState<Package[]>([]);
-  const [form, setForm] = useState({ studentId: "", packageId: "", classroomId: "", lessonType: "ONE_ON_ONE" });
+  const [packageId,       setPackageId]       = useState("");
+  // GROUP
+  const [classGroups,     setClassGroups]     = useState<ClassGroup[]>([]);
+  const [classGroupId,    setClassGroupId]    = useState("");
+
+  useEffect(() => {
+    if (lessonType === "GROUP") {
+      fetch("/api/class-groups").then(r => r.ok ? r.json() : []).then(setClassGroups);
+    }
+  }, [lessonType]);
 
   async function search(q: string) {
     setStudentSearch(q);
@@ -282,20 +296,28 @@ function CreateModal({
   }
 
   async function pickStudent(s: Student) {
-    setSelectedStudent(s);
-    setStudentSearch(s.name);
-    setStudentResults([]);
-    setForm(f => ({ ...f, studentId: s.id, packageId: "" }));
+    setSelectedStudent(s); setStudentSearch(s.name); setStudentResults([]); setPackageId("");
     const res = await fetch(`/api/packages?studentId=${s.id}&status=ACTIVE`);
     if (res.ok) setStudentPackages(await res.json());
   }
 
+  const selectedGroup = classGroups.find(g => g.id === classGroupId);
+  const selectedRoom  = classrooms.find(c => c.id === classroomId);
+  const groupFull     = selectedGroup && selectedRoom?.capacity !== null
+    ? selectedGroup.enrollments.length > (selectedRoom?.capacity ?? Infinity)
+    : false;
+
+  function handleSave() {
+    if (lessonType === "GROUP") {
+      onSave({ lessonType, classGroupId, classroomId });
+    } else {
+      onSave({ lessonType, studentId: selectedStudent?.id ?? "", packageId, classroomId });
+    }
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50"
-      onClick={onClose}>
-      {/* Sheet slides up on mobile, centered dialog on desktop */}
-      <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl p-5 shadow-xl
-        max-h-[90vh] overflow-y-auto"
+    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl p-5 shadow-xl max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-1">
           <h2 className="font-semibold text-slate-800 text-lg">新建排课</h2>
@@ -305,6 +327,18 @@ function CreateModal({
           {teachers.find(t => t.id === teacherId)?.name} · {date}
         </p>
         <div className="space-y-3">
+          {/* Type toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-slate-300">
+            {[["ONE_ON_ONE", "1 对 1"], ["GROUP", "班课"]].map(([v, l]) => (
+              <button key={v} type="button" onClick={() => setLessonType(v)}
+                className={`flex-1 py-2 text-sm font-medium transition-colors
+                  ${lessonType === v ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+
+          {/* Time */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">开始时间 *</label>
@@ -317,54 +351,79 @@ function CreateModal({
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">学生 * (在读)</label>
-            <div className="relative">
-              <input value={studentSearch} onChange={e => search(e.target.value)}
-                placeholder="输入姓名搜索..."
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              {studentResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-10 mt-1 max-h-40 overflow-y-auto">
-                  {studentResults.map(s => (
-                    <button key={s.id} type="button" onClick={() => pickStudent(s)}
-                      className="w-full text-left px-3 py-2.5 text-sm hover:bg-slate-50">{s.name}</button>
-                  ))}
+
+          {lessonType === "ONE_ON_ONE" ? (
+            <>
+              {/* Student search */}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">学生 * (在读)</label>
+                <div className="relative">
+                  <input value={studentSearch} onChange={e => search(e.target.value)} placeholder="输入姓名搜索..."
+                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  {studentResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-10 mt-1 max-h-40 overflow-y-auto">
+                      {studentResults.map(s => (
+                        <button key={s.id} type="button" onClick={() => pickStudent(s)}
+                          className="w-full text-left px-3 py-2.5 text-sm hover:bg-slate-50">{s.name}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {selectedStudent && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">课包 *</label>
+                  <select value={packageId} onChange={e => setPackageId(e.target.value)}
+                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">选择课包</option>
+                    {studentPackages.map(p => (
+                      <option key={p.id} value={p.id}>{p.grade?.name} · {p.subject.name} — 剩余 {Number(p.remainingHours).toFixed(1)}h</option>
+                    ))}
+                  </select>
                 </div>
               )}
-            </div>
-          </div>
-          {selectedStudent && (
+            </>
+          ) : (
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">课包 *</label>
-              <select value={form.packageId} onChange={e => setForm(f => ({ ...f, packageId: e.target.value }))}
+              <label className="block text-xs font-medium text-slate-600 mb-1">选择班级 *</label>
+              <select value={classGroupId} onChange={e => setClassGroupId(e.target.value)}
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">选择课包</option>
-                {studentPackages.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.grade?.name} · {p.subject.name} — 剩余 {Number(p.remainingHours).toFixed(1)}h
+                <option value="">选择班级</option>
+                {classGroups.filter(g => g.status !== "CLOSED").map(g => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} · {g.grade.name} {g.subject.name} · {g.enrollments.length}/{g.maxStudents}人
                   </option>
                 ))}
               </select>
+              {selectedGroup && (
+                <p className="text-xs text-slate-400 mt-1">
+                  已报名 {selectedGroup.enrollments.length} 人 / 上限 {selectedGroup.maxStudents} 人
+                </p>
+              )}
             </div>
           )}
+
+          {/* Classroom */}
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">教室 *</label>
-            <select value={form.classroomId} onChange={e => setForm(f => ({ ...f, classroomId: e.target.value }))}
+            <select value={classroomId} onChange={e => setClassroomId(e.target.value)}
               className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">选择教室</option>
-              {classrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {classrooms.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name}{c.capacity ? ` · ${c.capacity}座` : ""}
+                </option>
+              ))}
             </select>
+            {groupFull && (
+              <p className="text-xs text-red-500 mt-1">
+                ⚠️ 班级人数（{selectedGroup?.enrollments.length}）超过教室座位数（{selectedRoom?.capacity}）
+              </p>
+            )}
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">课程类型</label>
-            <select value={form.lessonType} onChange={e => setForm(f => ({ ...f, lessonType: e.target.value }))}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="ONE_ON_ONE">1 对 1</option>
-              <option value="GROUP">班课</option>
-            </select>
-          </div>
+
           {error && <p className="text-red-600 text-sm">{error}</p>}
-          <button onClick={() => onSave(form)}
+          <button onClick={handleSave}
             className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors mt-1">
             保存排课
           </button>
@@ -452,10 +511,11 @@ export default function SchedulePage() {
     setShowModal(true);
   }
 
-  async function handleSave(formData: { studentId: string; packageId: string; classroomId: string; lessonType: string }) {
-    if (!modalTeacherId || !formData.studentId || !formData.packageId || !formData.classroomId) {
-      setModalError("请填写所有必填字段"); return;
-    }
+  async function handleSave(formData: Record<string, string>) {
+    const isGroup = formData.lessonType === "GROUP";
+    if (!modalTeacherId || !formData.classroomId) { setModalError("请填写所有必填字段"); return; }
+    if (isGroup && !formData.classGroupId) { setModalError("请选择班级"); return; }
+    if (!isGroup && (!formData.studentId || !formData.packageId)) { setModalError("请选择学生和课包"); return; }
     const startTime = new Date(`${modalDate}T${modalStart}:00`);
     const endTime   = new Date(`${modalDate}T${modalEnd}:00`);
     if (endTime <= startTime) { setModalError("结束时间须晚于开始时间"); return; }
